@@ -1,59 +1,48 @@
 version: '3.8'
-
 services:
-  # W9 Links Creator Backend
-  w9-links-backend:
-    image: ghcr.io/${GITHUB_USER:-your-username}/w9-links-creator-backend:latest
-    container_name: w9-links-backend
-    restart: unless-stopped
-    labels:
-      - "com.centurylinklabs.watchtower.enable=true"
-    environment:
-      - HOST=0.0.0.0
-      - PORT=8080
-      - DATABASE_URL=postgres://${POSTGRES_USER:-w9admin}:${POSTGRES_PASSWORD:-securepassword}@w9-db-postgres:5432/${POSTGRES_DB:-w9labs}
-    networks:
-      - w9-network
-    deploy:
-      replicas: 1
-      update_config:
-        parallelism: 1
-        delay: 10s
-        failure_action: rollback
-      restart_policy:
-        condition: unless-stopped
-        delay: 5s
-        max_attempts: 3
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/api/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
-
-  # W9 Links Creator Frontend
-  w9-links-frontend:
-    image: ghcr.io/${GITHUB_USER:-your-username}/w9-links-creator-frontend:latest
-    container_name: w9-links-frontend
+  w9-links-creator:
+    image: ghcr.io/${GITHUB_USER:-w9labs}/w9-links-creator:latest
+    container_name: w9-links-creator
     restart: unless-stopped
     labels:
       - "com.centurylinklabs.watchtower.enable=true"
       - "traefik.enable=true"
-      - "traefik.http.routers.w9-links.rule=Host(`tools.w9.nu`) && PathPrefix(`/s`)"
-      - "traefik.http.services.w9-links.loadbalancer.server.port=3000"
+      - "traefik.http.routers.w9-links.rule=Host(`links.w9.nu`)"
+      - "traefik.http.routers.w9-links.entrypoints=websecure"
+      - "traefik.http.routers.w9-links.tls=true"
+      - "traefik.http.services.w9-links.loadbalancer.server.port=8085"
+    ports:
+      - "${W9_LINKS_PORT:-8085}:8085"
+    environment:
+      - HOST=0.0.0.0
+      - PORT=8085
+      - DATABASE_URL=${DATABASE_URL:-memory}
+      - BASE_URL=${BASE_URL:-https://w9.nu}
+    volumes:
+      - w9-links-data:/app/data
     networks:
       - w9-network
-    deploy:
-      replicas: 1
-      update_config:
-        parallelism: 1
-        delay: 10s
-        failure_action: rollback
-      restart_policy:
-        condition: unless-stopped
-        delay: 5s
-        max_attempts: 3
-
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8085/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+  watchtower:
+    image: containrrr/watchtower:latest
+    container_name: w9-links-watchtower
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - WATCHTOWER_CLEANUP=true
+      - WATCHTOWER_POLL_INTERVAL=300
+      - WATCHTOWER_LABEL_ENABLE=true
+    command: --interval 300 --scope w9-links-creator
+    networks:
+      - w9-network
+volumes:
+  w9-links-data:
+    driver: local
 networks:
   w9-network:
     external: true
