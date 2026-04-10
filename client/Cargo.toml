@@ -1,5 +1,5 @@
 [package]
-name = "w9_links_creator-client"
+name = "w9-links-creator-client"
 version = "0.1.0"
 edition = "2021"
 
