@@ -23,7 +23,10 @@ pub struct AppState{
 }
 
 fn layout(t:&str,b:&str,n:&str)->String{
-    format!(r#"<!DOCTYPE html><html><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/><title>{} — W9 Links</title><style>{}</style></head><body><div class="app"><nav class="nav"><a href="/" class="brand"><img src="/w9-logo/wordmark-light.svg" alt="W9"/><span>Links</span></a>{}</nav>{}</div></body></html>"#,t,CSS,n,b)
+    format!(
+r#"<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/><title>{} — W9 Links</title><style>{}</style></head><body><div class="app"><nav class="nav"><div class="nav-inner"><a href="/" class="brand"><img src="/w9-logo/wordmark.svg" alt="W9 Labs"/><span class="brand-text">Links</span></a><div class="nav-links">{}</div></div></nav><main class="app-main">{}</main><footer class="footer"><img class="footer-logo" src="/w9-logo/wordmark-dark.svg" alt="W9 Labs"/><p>W9 Links — URL Shortener & Note Drops</p><p class="text-xs text-muted">w9.nu / w9.se domains</p></footer></div></body></html>"#,
+        t, CSS, n, b
+    )
 }
 fn pub_layout(t:&str,b:&str)->String{layout(t,b,r#"<a href="/login">Login</a>"#)}
 fn user_layout(t:&str,b:&str)->String{layout(t,b,r#"<a href="/links">Links</a><a href="/notes">Notes</a><a href="/logout">Logout</a>"#)}
@@ -41,7 +44,7 @@ async fn verify(a:&AppState,t:&str)->Option<serde_json::Value>{
 async fn require(j:&CookieJar,a:&AppState)->Option<serde_json::Value>{let t=get_s(j)?;verify(a,&t).await}
 
 fn home_html()->String{
-    pub_layout("W9 Links",r#"<div class="hero"><img class="hero-logo" src="/w9-logo/hero-transparent.svg" alt="W9 Links"/><h1>🔗 W9 Links</h1><p>Short links on w9.nu / w9.se + private note drops</p><div class="flex mt-3" style="justify-content:center"><a href="/login" class="btn">Login with W9</a></div></div><div class="grid mt-3"><div class="card"><h3>📎 Short Links</h3><p class="text-sm">Create branded short URLs with click tracking.</p></div><div class="card"><h3>📝 Note Drops</h3><p class="text-sm">Password-protected notes that auto-destroy.</p></div></div>"#)
+    pub_layout("W9 Links",r#"<div class="hero"><img class="hero-logo" src="/w9-logo/wordmark.svg" alt="W9 Labs"/><h1>W9 Links</h1><p class="hero-sub">Short links on w9.nu / w9.se + private note drops</p><p class="hero-muted">Create, share, and track your links</p><div class="hero-actions"><a href="/login" class="btn">Login with W9</a></div></div><div class="grid"><div class="card"><h3>📎 Short Links</h3><p>Create branded short URLs with click tracking.</p></div><div class="card"><h3>📝 Note Drops</h3><p>Password-protected notes that auto-destroy.</p></div></div>"#)
 }
 fn login_html()->String{
     pub_layout("Login",r#"<div class="card" style="max-width:420px;margin:3rem auto;text-align:center"><h1>🔗 W9 Links</h1><p class="text-sm text-muted mb-2">Sign in with W9 DB</p><a href="https://db.w9.nu/oauth/authorize?redirect_uri=https://links.w9.nu/oauth/callback&response_type=code&client_id=w9-links" class="btn" style="width:100%">Login with W9 DB</a></div>"#)
