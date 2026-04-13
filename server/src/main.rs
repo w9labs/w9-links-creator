@@ -44,7 +44,7 @@ async fn verify(a:&AppState,t:&str)->Option<serde_json::Value>{
 async fn require(j:&CookieJar,a:&AppState)->Option<serde_json::Value>{let t=get_s(j)?;verify(a,&t).await}
 
 fn home_html()->String{
-    pub_layout("W9 Links",r#"<div class="hero"><img class="hero-logo" src="/w9-logo/wordmark.svg" alt="W9 Labs"/><h1>W9 Links</h1><p class="hero-sub">Short links on w9.nu / w9.se + private note drops</p><p class="hero-muted">Create, share, and track your links</p><div class="hero-actions"><a href="/login" class="btn">Login with W9</a></div></div><div class="grid"><div class="card"><h3>📎 Short Links</h3><p>Create branded short URLs with click tracking.</p></div><div class="card"><h3>📝 Note Drops</h3><p>Password-protected notes that auto-destroy.</p></div></div>"#)
+    pub_layout("W9 Links",r#"<div class="hero"><img class="hero-logo" src="/w9-logo/logo-landscape-transparent.svg" alt="W9 Labs"/><h1>W9 Links</h1><p class="hero-sub">Short links on w9.nu / w9.se + private note drops</p><p class="hero-muted">Create, share, and track your links</p><div class="hero-actions"><a href="/login" class="btn">Login with W9</a></div></div><div class="grid"><div class="card"><h3>📎 Short Links</h3><p>Create branded short URLs with click tracking.</p></div><div class="card"><h3>📝 Note Drops</h3><p>Password-protected notes that auto-destroy.</p></div></div>"#)
 }
 fn login_html()->String{
     pub_layout("Login",r#"<div class="card" style="max-width:420px;margin:3rem auto;text-align:center"><h1>🔗 W9 Links</h1><p class="text-sm text-muted mb-2">Sign in with W9 DB</p><a href="https://db.w9.nu/oauth/authorize?redirect_uri=https://links.w9.nu/oauth/callback&response_type=code&client_id=w9-links" class="btn" style="width:100%">Login with W9 DB</a></div>"#)
