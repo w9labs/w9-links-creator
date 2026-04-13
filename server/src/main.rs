@@ -148,10 +148,38 @@ async fn view_note(State(s):State<AppState>,axum::extract::Path(code):axum::extr
     Html(note_view_html(&code,&content)).into_response()
 }
 
+async fn redirect_short(State(s):State<AppState>,axum::extract::Path(code):axum::extract::Path<String>)->impl IntoResponse{
+    let row=match s.db.query_opt("SELECT target_url FROM short_links WHERE code=$1 AND (expires_at IS NULL OR expires_at>$2)",&[&code,&Utc::now()]).await{
+        Ok(Some(r))=>r,
+        None=>return Html(layout("Not Found",r#"<div class="card" style="max-width:400px;margin:3rem auto;text-align:center"><h1>404</h1><p>Short link not found or expired.</p></div>"#,"")).into_response()
+    };
+    let target:String=row.get("target_url");
+    // Increment click count
+    let _=s.db.execute("UPDATE short_links SET clicks=clicks+1 WHERE code=$1",&[&code]).await;
+    Redirect::to(&target).into_response()
+}
+
 async fn health(State(s):State<AppState>)->impl IntoResponse{
     match s.db.query_one("SELECT 1",&[]).await{
         Ok(_)=>(StatusCode::OK,Json(serde_json::json!({"status":"ok","service":"w9-links-creator","database":"connected","timestamp":Utc::now().to_rfc3339()}))),
         Err(e)=>(StatusCode::SERVICE_UNAVAILABLE,Json(serde_json::json!({"status":"error","error":e.to_string()})))
+    }
+}
+
+// API: Create short link (for w9-tools and other services)
+#[derive(Debug,Deserialize)]
+struct ApiCreateLink{url:String,code:Option<String>,expires_hours:Option<i64>}
+
+async fn api_create_link(State(s):State<AppState>,Json(req):Json<ApiCreateLink>)->(StatusCode,Json<serde_json::Value>){
+    let code=req.code.filter(|c|!c.is_empty()).unwrap_or_else(||nanoid!(8));
+    let exp=req.expires_hours.map(|h|Utc::now()+chrono::Duration::hours(h));
+    let id=Uuid::new_v4();
+    match s.db.execute("INSERT INTO short_links(id,code,target_url,domain,title,expires_at)VALUES($1,$2,$3,$4,$5,$6)",&[&id,&code,&req.url,&"w9.nu",&Option::<String>::None,&exp]).await{
+        Ok(_)=>{
+            let domain="w9.nu";
+            (StatusCode::OK,Json(serde_json::json!({"code":code,"short_url":format!("https://{}/s/{}",domain,code),"target_url":req.url})))
+        },
+        Err(e)=>(StatusCode::INTERNAL_SERVER_ERROR,Json(serde_json::json!({"error":e.to_string()})))
     }
 }
 
@@ -177,6 +205,8 @@ async fn main()->anyhow::Result<()>{
         .route("/notes",get(notes_page))
         .route("/notes",post(notes_post))
         .route("/n/:code",get(view_note))
+        .route("/s/:code",get(redirect_short))
+        .route("/api/link/create",post(api_create_link))
         .route("/api/health",get(health))
         .with_state(state)
         .layer(ServiceBuilder::new().layer(TraceLayer::new_for_http()).layer(CorsLayer::permissive()));
