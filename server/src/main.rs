@@ -151,7 +151,8 @@ async fn view_note(State(s):State<AppState>,axum::extract::Path(code):axum::extr
 async fn redirect_short(State(s):State<AppState>,axum::extract::Path(code):axum::extract::Path<String>)->impl IntoResponse{
     let row=match s.db.query_opt("SELECT target_url FROM short_links WHERE code=$1 AND (expires_at IS NULL OR expires_at>$2)",&[&code,&Utc::now()]).await{
         Ok(Some(r))=>r,
-        None=>return Html(layout("Not Found",r#"<div class="card" style="max-width:400px;margin:3rem auto;text-align:center"><h1>404</h1><p>Short link not found or expired.</p></div>"#,"")).into_response()
+        Ok(None)=>return Html(layout("Not Found",r#"<div class="card" style="max-width:400px;margin:3rem auto;text-align:center"><h1>404</h1><p>Short link not found or expired.</p></div>"#,"")).into_response(),
+        Err(_)=>return Html(layout("Error",r#"<div class="card" style="max-width:400px;margin:3rem auto;text-align:center"><h1>500</h1><p>Database error.</p></div>"#,"")).into_response()
     };
     let target:String=row.get("target_url");
     // Increment click count
